@@ -201,6 +201,55 @@ class IGResourceGenerator:
                 if entry:
                     self._resources.append(entry)
 
+    @staticmethod
+    def _extract_human_name(value: Any) -> Optional[str]:
+        """Extract a readable name from a FHIR HumanName or list of HumanName."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            # List of HumanName – pick the first entry
+            for hn in value:
+                if isinstance(hn, dict):
+                    if hn.get("text"):
+                        return str(hn["text"])
+                    parts: List[str] = []
+                    given = hn.get("given")
+                    if isinstance(given, list):
+                        parts.extend(str(g) for g in given)
+                    family = hn.get("family")
+                    if family:
+                        parts.append(str(family))
+                    if parts:
+                        return " ".join(parts)
+                elif isinstance(hn, str):
+                    return hn
+        if isinstance(value, dict):
+            if value.get("text"):
+                return str(value["text"])
+        return None
+
+    @staticmethod
+    def _extract_codeable_text(value: Any) -> Optional[str]:
+        """Extract readable text from a FHIR CodeableConcept, Coding, or plain string."""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            # CodeableConcept: prefer .text, then first coding.display
+            if value.get("text"):
+                return str(value["text"])
+            codings = value.get("coding")
+            if isinstance(codings, list):
+                for coding in codings:
+                    if isinstance(coding, dict) and coding.get("display"):
+                        return str(coding["display"])
+        if isinstance(value, list):
+            # Unexpected list – try first element
+            for item in value:
+                result = IGResourceGenerator._extract_codeable_text(item)
+                if result:
+                    return result
+        return None
+
     def _parse_resource_file(self, file_path: Path, is_example: bool) -> Optional[Dict[str, Any]]:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -222,12 +271,21 @@ class IGResourceGenerator:
                 "url": None,
             }
 
-            name = resource.get("name")
-            entry["name"] = str(name) if name else format_title(rid)
+            # name: may be a plain string or a complex type like HumanName[]
+            raw_name = resource.get("name")
+            if isinstance(raw_name, str):
+                entry["name"] = raw_name
+            elif raw_name is not None:
+                entry["name"] = self._extract_human_name(raw_name) or format_title(rid)
+            else:
+                entry["name"] = format_title(rid)
 
-            desc = resource.get("description")
-            if desc:
-                entry["description"] = str(desc)
+            # description: may be a plain string or a CodeableConcept
+            raw_desc = resource.get("description")
+            if isinstance(raw_desc, str):
+                entry["description"] = raw_desc
+            elif raw_desc is not None:
+                entry["description"] = self._extract_codeable_text(raw_desc)
 
             if is_example:
                 meta = resource.get("meta", {})

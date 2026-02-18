@@ -47,6 +47,54 @@ cd simplifier-ig
 pip install .
 ```
 
+### As a GitHub Action
+
+Use this action in your workflows to generate IGs automatically:
+
+```yaml
+# .github/workflows/generate-ig.yml
+name: Generate IG
+on: [push]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Implementation Guide
+        uses: ArdonToonstra/simplifier-ig@v1
+        with:
+          input: ./input
+          output: ./guides
+
+      - name: Upload IG output
+        uses: actions/upload-artifact@v4
+        with:
+          name: ig-output
+          path: ./guides
+```
+
+#### Action inputs
+
+| Input              | Description                                      | Default     |
+|--------------------|--------------------------------------------------|-------------|
+| `command`          | Command to run: `generate`, `validate`, `ig-resource` | `generate` |
+| `input`            | Path to the IG input folder                      | `./input`   |
+| `output`           | Path to the output folder                        | `./guides`  |
+| `skip-validation`  | Skip input validation (`true`/`false`)           | `false`     |
+| `no-ig-resource`   | Skip ImplementationGuide.json generation (`true`/`false`) | `false` |
+| `python-version`   | Python version to use                            | `3.12`      |
+
+#### Validate only
+
+```yaml
+- uses: ArdonToonstra/simplifier-ig@v1
+  with:
+    command: validate
+    input: ./input
+```
+
 ## Usage
 
 ### Initialize a new IG input folder

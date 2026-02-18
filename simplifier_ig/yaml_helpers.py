@@ -17,4 +17,4 @@ def dump_yaml(data: Any, file_path: Path) -> None:
     import yaml
 
     with open(file_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)

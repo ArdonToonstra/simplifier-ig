@@ -1,0 +1,74 @@
+name: "Simplifier IG Generator"
+description: "Generate Simplifier.net Implementation Guide structures from an IG publisher-like input folder"
+branding:
+  icon: "book-open"
+  color: "blue"
+
+inputs:
+  command:
+    description: "Command to run: generate, validate, ig-resource"
+    required: false
+    default: "generate"
+  input:
+    description: "Path to the IG input folder"
+    required: false
+    default: "./input"
+  output:
+    description: "Path to the output folder (generate command only)"
+    required: false
+    default: "./guides"
+  skip-validation:
+    description: "Skip input validation (generate command only)"
+    required: false
+    default: "false"
+  no-ig-resource:
+    description: "Skip ImplementationGuide.json resource generation (generate command only)"
+    required: false
+    default: "false"
+  python-version:
+    description: "Python version to use"
+    required: false
+    default: "3.12"
+
+outputs:
+  output-path:
+    description: "Path to the generated output folder"
+    value: ${{ steps.run.outputs.output-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install simplifier-ig
+      shell: bash
+      run: pip install "${{ github.action_path }}"
+
+    - name: Run simplifier-ig
+      id: run
+      shell: bash
+      run: |
+        CMD="simplifier-ig ${{ inputs.command }}"
+
+        if [ "${{ inputs.command }}" = "generate" ]; then
+          CMD="$CMD --input ${{ inputs.input }} --output ${{ inputs.output }}"
+          if [ "${{ inputs.skip-validation }}" = "true" ]; then
+            CMD="$CMD --skip-validation"
+          fi
+          if [ "${{ inputs.no-ig-resource }}" = "true" ]; then
+            CMD="$CMD --no-ig-resource"
+          fi
+          echo "output-path=${{ inputs.output }}" >> "$GITHUB_OUTPUT"
+
+        elif [ "${{ inputs.command }}" = "validate" ]; then
+          CMD="$CMD --input ${{ inputs.input }}"
+
+        elif [ "${{ inputs.command }}" = "ig-resource" ]; then
+          CMD="$CMD --path ${{ inputs.output }} --input ${{ inputs.input }}"
+        fi
+
+        echo "Running: $CMD"
+        $CMD
