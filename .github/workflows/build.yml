@@ -1,0 +1,60 @@
+name: Build Binaries
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: simplifier-ig-linux
+            asset_name: simplifier-ig
+          - os: macos-latest
+            artifact_name: simplifier-ig-macos
+            asset_name: simplifier-ig
+          - os: windows-latest
+            artifact_name: simplifier-ig-windows
+            asset_name: simplifier-ig.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyinstaller pyyaml
+
+      - name: Build binary (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: |
+          pyinstaller \
+            --onefile \
+            --name simplifier-ig \
+            --add-data "simplifier_ig/templates:templates" \
+            simplifier_ig/__main__.py
+
+      - name: Build binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pyinstaller `
+            --onefile `
+            --name simplifier-ig `
+            --add-data "simplifier_ig\templates;templates" `
+            simplifier_ig\__main__.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.asset_name }}

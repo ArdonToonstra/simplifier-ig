@@ -1,0 +1,22 @@
+# Implementation Guide Configuration
+
+title: My Implementation Guide
+description: This is a sample implementation guide generated using Firely Terminal.
+version: 0.1.0
+style-root: project
+style-name: custom
+numbered-headings: false
+
+id: some.unique.id.for.ig # usually the same as the package id
+status: active # draft | active | retired | unknown
+fhirVersion: 4.0.1 # adjust to your target FHIR version
+canonical: https://acme.org/fhir # adjust to your canonical base
+url-key: my-implementation-guide # the url-key of the guide on Simplifier.net
+# Menu structure for the IG navigation
+# Maps display names to files (.md) or folders
+menu:
+  Home: index.md
+  Artifacts: artifacts
+  # Add more menu items as needed:
+  # "Getting Started": getting-started.md
+  # Downloads: downloads

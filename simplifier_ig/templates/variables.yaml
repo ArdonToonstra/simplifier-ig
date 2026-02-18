@@ -1,0 +1,7 @@
+# Variables for IG Generation
+# These variables can be referenced in your markdown pages using {{ig-var: variable-name }}
+
+# Example variables:
+# fhir-version: R4
+# ig-version: 1.0.0
+# publisher: My Organization

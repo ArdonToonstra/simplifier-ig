@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simplifier-ig"
+version = "0.1.0"
+description = "CLI tool for generating Simplifier.net Implementation Guide structures"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = ["pyyaml"]
+
+[project.scripts]
+simplifier-ig = "simplifier_ig.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["simplifier_ig*"]
+
+[tool.setuptools.package-data]
+simplifier_ig = ["templates/**/*"]

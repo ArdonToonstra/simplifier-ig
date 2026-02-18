@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8" />
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <title>IG: {page-title}} - FHIR {{variable:guide-fhir-version}}</title>
+
+    <link rel="icon" href="{{content}}/styles/common/favicon.ico" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="{{content}}/styles/common/jquery/jquery.min.js"></script>
+    <script src="{{content}}/styles/common/bootstrap/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="{{content}}/styles/common/main.min.css" />
+    <link rel="stylesheet" href="{{content}}/styles/common/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="{{content}}/styles/common/rendering/rendering.min.css" />
+
+    <script src="{{content}}/styles/common/rendering/stu3TreeTable.min.js"></script>
+    <script src="{{content}}/styles/common/rendering/baseTreetable.min.js"></script>
+
+    <link rel="stylesheet" href="{{content}}/{{style-folder}}/style.css?v={{version}}" />
+
+</head>
+
+<body>
+
+    <div id="ig-viewer">
+
+        <div class="ig-view-content">
+
+            <div id="ig-view-twolevelmenu">
+
+                <div class="header" role="banner" aria-label="Header">
+                    {{ dropdown-navigation, show-title:yes }}
+                </div>
+
+                <div class="content container" role="main" aria-label="Main content">
+                    <div class="main-content-column">
+                        {{ page }}
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="ig-view-footer" role="contentinfo" aria-label="Footer">
+            <div id="segment-footer" igtool="footer" class="segment">
+                <div class="container">
+                    <div class="inner-wrapper">
+                        <p>
+                            IG &#169; {{publish-date, format:yyy}} <a href="{{variable:publisher-url}}">{{variable:publisher-name}}</a>. Package <strong>{{variable:scope}}</strong> based on <a href="https://hl7.org/fhir/{{variable:guide-fhir-version}}">FHIR {{variable:guide-fhir-version}}</a>. Generated
+                            <span title="{{publish-date}}">
+                                {{publish-date, format:yyy-MM-dd}}
+                            </span>
+                            <br/>
+                            <span>
+                                Links: <a href="{{content}}/../">Table of Contents</a> |
+                                <a href="https://simplifier.net/{{variable:project-url-key}}/~issues?source=QualityControl">QA Report</a> |
+                                <a target="_blank" href="https://simplifier.net/published-guide/{{variable:guide-url-key}}/versions">Version History</a> |
+                                <a rel="license" alt="" href="https://hl7.org/fhir/{{variable:guide-fhir-version}}/license.html">CC0</a> |
+                                <a href="https://simplifier.net/search?guide={{variable:guide-url-key}}">Search</a> |
+                                <a target="_blank" href="https://simplifier.net/{{variable:project-url-key}}/~issues">Propose a change</a>
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Configuration: pages that should have two-column layout
+            var pagesWithSidebar = [
+                'Session1',  // matches if the page title/URL contains 'Session1'
+                'FDML-session1', // matches the topic from markdown
+                // Add more page identifiers as needed
+            ];
+            
+            // Check if current page should have sidebar
+            var shouldHaveSidebar = false;
+            var pageTitle = document.title || '';
+            var pageUrl = window.location.href || '';
+            
+            // Check if this page matches any of the configured pages
+            pagesWithSidebar.forEach(function(pageId) {
+                if (pageTitle.includes(pageId) || pageUrl.includes(pageId)) {
+                    shouldHaveSidebar = true;
+                }
+            });
+            
+            // Also check if there are any action boxes on this page
+            var $actionBoxes = $('.action-box');
+            if ($actionBoxes.length > 0) {
+                shouldHaveSidebar = true;
+            }
+            
+            if (shouldHaveSidebar) {
+                // Only create two-column layout if conditions are met
+                var $content = $('.main-content-column');
+                
+                // Wrap content in page-wrapper if not already wrapped
+                if (!$content.parent().hasClass('page-wrapper')) {
+                    $content.wrap('<div class="page-wrapper"></div>');
+                    $content.after('<div class="action-sidebar-column"></div>');
+                }
+                
+                // Move all action boxes to the sidebar
+                $actionBoxes.each(function() {
+                    var $actionBox = $(this);
+                    
+                    // Remove any inline styles that might interfere
+                    $actionBox.removeAttr('style');
+                    
+                    // Move to sidebar column
+                    $('.action-sidebar-column').append($actionBox);
+                });
+                
+                // Add a class to indicate this page has the sidebar layout
+                $('body').addClass('has-action-boxes');
+            }
+        });
+    </script>
+
+</body>
+
+</html>
