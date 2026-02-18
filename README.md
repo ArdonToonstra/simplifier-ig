@@ -1,14 +1,45 @@
 # simplifier-ig
 
-CLI tool for generating [Simplifier.net](https://simplifier.net) Implementation Guide structures. A Python port of functionality from Firely Terminal.
+CLI tool for generating [Simplifier.net](https://simplifier.net) Implementation Guide structures from a IG publisher like input folder. The tool supports initializing a new IG input structure, validating the input, and generating the IG output. It also allows saving configuration for repeated use.
 
 ## Installation
+
+### Via pip (recommended for developers)
 
 ```bash
 pip install simplifier-ig
 ```
 
-Or install from source:
+### Via standalone binary (no Python required)
+
+Download the pre-built binary for your OS from the [GitHub Actions artifacts](https://github.com/ArdonToonstra/simplifier-ig/actions/workflows/build.yml):
+
+1. Go to the **Actions** tab → **Build Binaries** workflow
+2. Click on the latest successful run (tagged with a version like `v0.1.0`)
+3. Scroll down to **Artifacts** and download:
+   - `simplifier-ig-linux` (Linux)
+   - `simplifier-ig-macos` (macOS)
+   - `simplifier-ig-windows` (Windows)
+4. Extract the binary and make it executable (Linux/macOS only):
+   ```bash
+   # Linux/macOS
+   chmod +x simplifier-ig
+   ./simplifier-ig --help
+   
+   # Or add to PATH
+   sudo mv simplifier-ig /usr/local/bin/
+   ```
+   
+   ```powershell
+   # Windows (PowerShell)
+   .\simplifier-ig.exe --help
+   
+   # Or add to PATH by moving to a directory in your PATH
+   ```
+
+> **Note**: Binaries are currently stored as GitHub Actions artifacts (90-day retention). For permanent releases, they can be manually attached to GitHub Releases or automated via an additional workflow.
+
+### From source
 
 ```bash
 git clone https://github.com/ArdonToonstra/simplifier-ig.git
@@ -111,7 +142,23 @@ python -m simplifier_ig --help
 
 ### Building binaries
 
-The GitHub Actions workflow builds standalone binaries for Linux, macOS, and Windows using PyInstaller on every push to `main`.
+The GitHub Actions workflow builds standalone binaries for Linux, macOS, and Windows using PyInstaller when a version tag is pushed (e.g., `v0.1.0`).
+
+**To build binaries for a release:**
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+This triggers the **Build Binaries** workflow which creates three artifacts:
+- `simplifier-ig-linux` (Ubuntu)
+- `simplifier-ig-macos` (macOS)
+- `simplifier-ig-windows` (Windows .exe)
+
+Artifacts are available in the **Actions** tab → **Build Binaries** workflow for 90 days. To attach binaries permanently to GitHub Releases, either:
+- Download artifacts and manually attach to the release, or
+- Extend the workflow to automatically create a GitHub Release with attached binaries
 
 ### Publishing to PyPI
 
