@@ -122,7 +122,7 @@ simplifier-ig validate --input ./my-ig
 simplifier-ig generate --input ./my-ig --output ./output
 ```
 
-By default, an `ImplementationGuide.json` FHIR R4 resource is generated alongside the IG. This requires the following fields in `guide.yaml`:
+By default, an `ImplementationGuide.json` FHIR R4 resource is generated alongside the IG. Only FHIR R4 (`4.0.1`) is currently supported for IG resource generation. This requires the following fields in `guide.yaml`:
 
 ```yaml
 id: my.ig.id
@@ -217,7 +217,7 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-This requires a `PYPI_API_TOKEN` secret configured in the repository settings.
+This triggers the **Publish to PyPI** workflow, which uses OpenID Connect (Trusted Publisher) — no API token or secret is required.
 
 ## Dependencies
 

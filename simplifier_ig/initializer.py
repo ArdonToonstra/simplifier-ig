@@ -143,6 +143,9 @@ class IGInitializer:
         count += self._copy_template_file(template_base, "guide.yaml", self._output_dir, warnings)
         count += self._copy_template_file(template_base, "variables.yaml", self._output_dir, warnings)
 
+        # .simplifierupload goes in the project root (parent of the input folder)
+        count += self._copy_template_file(template_base, ".simplifierupload", self._output_dir.parent, warnings)
+
         # pages/
         pages_tp = template_base / "pages"
         pages_out = self._output_dir / "pages"

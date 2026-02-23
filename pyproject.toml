@@ -5,11 +5,32 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "simplifier-ig"
 version = "0.1.0"
-description = "CLI tool for generating Simplifier.net Implementation Guide structures"
+description = "CLI tool for generating Simplifier.net supported Implementation Guide structures from an IG publisher like input folder"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 dependencies = ["pyyaml"]
+authors = [
+  { name = "Ardon Toonstra" }
+]
+keywords = ["fhir", "simplifier", "implementation-guide", "hl7", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Healthcare Industry",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Code Generators",
+  "Environment :: Console",
+]
+
+[project.urls]
+Repository = "https://github.com/ArdonToonstra/simplifier-ig"
+"Bug Tracker" = "https://github.com/ArdonToonstra/simplifier-ig/issues"
 
 [project.scripts]
 simplifier-ig = "simplifier_ig.cli:main"
@@ -18,4 +39,4 @@ simplifier-ig = "simplifier_ig.cli:main"
 include = ["simplifier_ig*"]
 
 [tool.setuptools.package-data]
-simplifier_ig = ["templates/**/*"]
+simplifier_ig = ["templates/**/*", "templates/.*"]
