@@ -8,6 +8,7 @@ from .yaml_helpers import load_yaml
 
 REQUIRED_INPUT_FOLDERS = ["resources", "examples", "pages", "styles", "pagetemplates-artifacts"]
 OPTIONAL_INPUT_FOLDERS = ["images", "pagetemplates"]
+FSH_GENERATED_RESOURCES = "fsh-generated/resources"
 REQUIRED_INPUT_FILES = ["guide.yaml"]
 REQUIRED_STYLE_FILES = ["master.html", "settings.style", "style.css"]
 
@@ -153,6 +154,15 @@ class IGInputValidator:
                 else:
                     self._log(f"[OK] Found optional folder: {folder} ({len(md_files)} template files)")
 
+        # Check for FSH-generated resources
+        fsh_dir = self._input_dir / FSH_GENERATED_RESOURCES
+        if fsh_dir.is_dir():
+            fsh_count = len(list(fsh_dir.glob("*.json")))
+            result["has_fsh_generated"] = True
+            self._log(f"[OK] Found fsh-generated/resources ({fsh_count} JSON files)")
+        else:
+            self._log("[INFO] No fsh-generated/resources folder found (optional, requires SUSHI)")
+
     def _validate_styles_structure(self, result):
         self._log("[INFO] Validating styles folder...")
         styles_dir = self._input_dir / "styles"
@@ -188,6 +198,11 @@ class IGInputValidator:
         counts: Dict[str, int] = {}
         res_dir = self._input_dir / "resources"
         counts["resources"] = len(list(res_dir.glob("*.json"))) if res_dir.is_dir() else 0
+
+        fsh_dir = self._input_dir / FSH_GENERATED_RESOURCES
+        fsh_count = len(list(fsh_dir.glob("*.json"))) if fsh_dir.is_dir() else 0
+        counts["fsh_generated_resources"] = fsh_count
+        counts["resources"] += fsh_count
 
         ex_dir = self._input_dir / "examples"
         counts["examples"] = len(list(ex_dir.glob("*.json"))) if ex_dir.is_dir() else 0

@@ -286,15 +286,23 @@ class IGGenerator:
             encoding="utf-8",
         )
 
-        # Process resources
+        # Process resources (from resources/ and fsh-generated/resources/)
         resources_dir = self._input_dir / "resources"
+        fsh_resources_dir = self._input_dir / "fsh-generated" / "resources"
         resources_by_type: Dict[str, List] = defaultdict(list)
+        seen_resource_ids: set = set()
 
-        if resources_dir.is_dir():
-            for rf in sorted(resources_dir.glob("*.json")):
-                info = self._parse_fhir_resource(rf)
-                if info:
-                    resources_by_type[info["resourceType"]].append(info)
+        for scan_dir in [resources_dir, fsh_resources_dir]:
+            if scan_dir.is_dir():
+                for rf in sorted(scan_dir.glob("*.json")):
+                    info = self._parse_fhir_resource(rf)
+                    if info:
+                        key = (info["resourceType"], info["id"])
+                        if key not in seen_resource_ids:
+                            seen_resource_ids.add(key)
+                            resources_by_type[info["resourceType"]].append(info)
+                        else:
+                            self._log(f"   Skipped duplicate: {info['resourceType']}/{info['id']} from {scan_dir.name}")
 
         resource_count = 0
         for resource_type in sorted(resources_by_type):

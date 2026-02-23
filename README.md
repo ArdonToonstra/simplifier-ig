@@ -163,6 +163,8 @@ my-ig/
 ├── variables.yaml              # Template variables
 ├── resources/                  # FHIR conformance resources (.json)
 ├── examples/                   # FHIR example resources (.json)
+├── fsh-generated/              # (optional) SUSHI output
+│   └── resources/              # FSH-compiled FHIR resources (.json)
 ├── pages/                      # Markdown documentation pages
 ├── images/                     # (optional) Images
 ├── pagetemplates/              # (optional) Reusable page snippets
@@ -173,6 +175,17 @@ my-ig/
         ├── settings.style
         └── style.css
 ```
+
+### FHIR Shorthand (FSH) support
+
+If your project uses [FHIR Shorthand](https://build.fhir.org/ig/HL7/fhir-shorthand/), run [SUSHI](https://fshschool.org/docs/sushi/) before running this tool:
+
+```bash
+sushi .
+simplifier-ig generate --input ./my-ig --output ./output
+```
+
+Resources from `fsh-generated/resources/` are automatically picked up alongside `resources/`. If the same resource (same `resourceType` + `id`) exists in both folders, the one in `resources/` takes priority.
 
 ## Development
 

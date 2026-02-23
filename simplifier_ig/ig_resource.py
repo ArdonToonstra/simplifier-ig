@@ -185,13 +185,19 @@ class IGResourceGenerator:
         if not self._input_dir:
             return
 
-        # Conformance resources
+        # Conformance resources (from resources/ and fsh-generated/resources/)
         res_dir = self._input_dir / "resources"
-        if res_dir.is_dir():
-            for f in sorted(res_dir.glob("*.json")):
-                entry = self._parse_resource_file(f, is_example=False)
-                if entry:
-                    self._resources.append(entry)
+        fsh_res_dir = self._input_dir / "fsh-generated" / "resources"
+        seen_ids: set = set()
+        for scan_dir in [res_dir, fsh_res_dir]:
+            if scan_dir.is_dir():
+                for f in sorted(scan_dir.glob("*.json")):
+                    entry = self._parse_resource_file(f, is_example=False)
+                    if entry:
+                        key = (entry.get("resource", {}).get("reference", ""),)
+                        if key not in seen_ids:
+                            seen_ids.add(key)
+                            self._resources.append(entry)
 
         # Examples
         ex_dir = self._input_dir / "examples"
