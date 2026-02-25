@@ -138,6 +138,7 @@ class IGGenerator:
         template_files = {
             "CodeSystem": "codesystem.md",
             "StructureDefinition": "structuredefinition.md",
+            "Logical": "logical.md",
             "ValueSet": "valueset.md",
             "Example": "examples.md",
         }
@@ -254,6 +255,7 @@ class IGGenerator:
                 "filename": file_path.stem,
                 "filepath": str(file_path),
                 "url": resource.get("url", ""),
+                "kind": resource.get("kind", ""),
             }
         except Exception:
             return None
@@ -288,7 +290,7 @@ class IGGenerator:
 
         # Process resources (from resources/ and fsh-generated/resources/)
         resources_dir = self._input_dir / "resources"
-        fsh_resources_dir = self._input_dir / "fsh-generated" / "resources"
+        fsh_resources_dir = self._input_dir.parent / "fsh-generated" / "resources"
         resources_by_type: Dict[str, List] = defaultdict(list)
         seen_resource_ids: set = set()
 
@@ -300,7 +302,11 @@ class IGGenerator:
                         key = (info["resourceType"], info["id"])
                         if key not in seen_resource_ids:
                             seen_resource_ids.add(key)
-                            resources_by_type[info["resourceType"]].append(info)
+                            # Classify logical models separately from other StructureDefinitions
+                            classified_type = info["resourceType"]
+                            if classified_type == "StructureDefinition" and info.get("kind") == "logical":
+                                classified_type = "Logical"
+                            resources_by_type[classified_type].append(info)
                         else:
                             self._log(f"   Skipped duplicate: {info['resourceType']}/{info['id']} from {scan_dir.name}")
 
@@ -318,7 +324,7 @@ class IGGenerator:
 
                 variables = {
                     "file-name": resource["id"],
-                    f"{resource_type}.url": resource.get("url", ""),
+                    f"{resource['resourceType']}.url": resource.get("url", ""),
                 }
 
                 if template:

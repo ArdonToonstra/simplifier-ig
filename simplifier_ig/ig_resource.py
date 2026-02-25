@@ -187,7 +187,7 @@ class IGResourceGenerator:
 
         # Conformance resources (from resources/ and fsh-generated/resources/)
         res_dir = self._input_dir / "resources"
-        fsh_res_dir = self._input_dir / "fsh-generated" / "resources"
+        fsh_res_dir = self._input_dir.parent / "fsh-generated" / "resources"
         seen_ids: set = set()
         for scan_dir in [res_dir, fsh_res_dir]:
             if scan_dir.is_dir():

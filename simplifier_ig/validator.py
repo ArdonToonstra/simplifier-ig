@@ -8,7 +8,6 @@ from .yaml_helpers import load_yaml
 
 REQUIRED_INPUT_FOLDERS = ["resources", "examples", "pages", "styles", "pagetemplates-artifacts"]
 OPTIONAL_INPUT_FOLDERS = ["images", "pagetemplates"]
-FSH_GENERATED_RESOURCES = "fsh-generated/resources"
 REQUIRED_INPUT_FILES = ["guide.yaml"]
 REQUIRED_STYLE_FILES = ["master.html", "settings.style", "style.css"]
 
@@ -54,10 +53,13 @@ class IGInputValidator:
             # Step 8: validate styles structure
             self._validate_styles_structure(result)
 
-            # Step 9: count files
+            # Step 9: validate FSH input (if present)
+            self._validate_fsh_input(result)
+
+            # Step 10: count files
             result["file_counts"] = self._count_files(result.get("custom_styles_folder"))
 
-            # Step 10: check IG resource fields (informational)
+            # Step 11: check IG resource fields (informational)
             self._check_ig_resource_fields(result)
 
             result["is_valid"] = len(result["errors"]) == 0
@@ -154,10 +156,10 @@ class IGInputValidator:
                 else:
                     self._log(f"[OK] Found optional folder: {folder} ({len(md_files)} template files)")
 
-        # Check for FSH-generated resources
-        fsh_dir = self._input_dir / FSH_GENERATED_RESOURCES
-        if fsh_dir.is_dir():
-            fsh_count = len(list(fsh_dir.glob("*.json")))
+        # Check for FSH-generated resources (at project root, sibling of input dir)
+        fsh_gen_dir = self._input_dir.parent / "fsh-generated" / "resources"
+        if fsh_gen_dir.is_dir():
+            fsh_count = len(list(fsh_gen_dir.glob("*.json")))
             result["has_fsh_generated"] = True
             self._log(f"[OK] Found fsh-generated/resources ({fsh_count} JSON files)")
         else:
@@ -194,12 +196,46 @@ class IGInputValidator:
 
         self._log(f"[OK] All required style files present: {', '.join(REQUIRED_STYLE_FILES)}")
 
+    def _validate_fsh_input(self, result):
+        """Validate FSH input: if .fsh files exist, fsh-generated must be present."""
+        fsh_input_dir = self._input_dir / "fsh"
+        if not fsh_input_dir.is_dir():
+            return
+
+        fsh_files = list(fsh_input_dir.glob("*.fsh"))
+        if not fsh_files:
+            return
+
+        self._log(f"[INFO] Found {len(fsh_files)} FSH source files in input/fsh/")
+        result["has_fsh_input"] = True
+        result["fsh_file_count"] = len(fsh_files)
+
+        fsh_gen_dir = self._input_dir.parent / "fsh-generated" / "resources"
+        if not fsh_gen_dir.is_dir():
+            result["errors"].append(
+                "FSH source files found in input/fsh/ but fsh-generated/resources/ "
+                "directory not found at the project root.\n"
+                "   Please run SUSHI to compile FSH files into FHIR JSON resources:\n"
+                "   $ sushi .\n"
+                "   The fsh-generated/ folder should appear as a sibling of the input/ folder."
+            )
+            return
+
+        json_files = list(fsh_gen_dir.glob("*.json"))
+        if not json_files:
+            result["warnings"].append(
+                "fsh-generated/resources/ exists but contains no JSON files. "
+                "Run SUSHI to generate FHIR resources from your FSH files."
+            )
+        else:
+            self._log(f"[OK] FSH pipeline validated: {len(fsh_files)} .fsh files -> {len(json_files)} generated resources")
+
     def _count_files(self, custom_styles_folder: Optional[str]) -> Dict[str, int]:
         counts: Dict[str, int] = {}
         res_dir = self._input_dir / "resources"
         counts["resources"] = len(list(res_dir.glob("*.json"))) if res_dir.is_dir() else 0
 
-        fsh_dir = self._input_dir / FSH_GENERATED_RESOURCES
+        fsh_dir = self._input_dir.parent / "fsh-generated" / "resources"
         fsh_count = len(list(fsh_dir.glob("*.json"))) if fsh_dir.is_dir() else 0
         counts["fsh_generated_resources"] = fsh_count
         counts["resources"] += fsh_count

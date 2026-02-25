@@ -87,11 +87,16 @@ def cmd_validate(args):
     _printer("Input file counts:")
     fc = result["file_counts"]
     _printer(f"   - Resources: {fc.get('resources', 0)} files")
+    if fc.get("fsh_generated_resources", 0) > 0:
+        _printer(f"     (includes {fc['fsh_generated_resources']} from fsh-generated/resources)")
     _printer(f"   - Examples: {fc.get('examples', 0)} files")
     _printer(f"   - Pages: {fc.get('pages', 0)} files")
     _printer(f"   - Style files: {fc.get('styles', 0)} files")
     if fc.get("pagetemplates", 0) > 0:
         _printer(f"   - Page templates: {fc['pagetemplates']} files")
+
+    if result.get("has_fsh_input"):
+        _printer(f"   - FSH source files: {result.get('fsh_file_count', 0)} files")
 
     # Save path to config
     cfg = load_config()
