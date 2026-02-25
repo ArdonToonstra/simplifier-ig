@@ -136,7 +136,12 @@ class IGGenerator:
             return
 
         template_files = {
+            "CapabilityStatement": "capabilitystatement.md",
             "CodeSystem": "codesystem.md",
+            "ConceptMap": "conceptmap.md",
+            "MessageDefinition": "messagedefinition.md",
+            "NamingSystem": "namingsystem.md",
+            "SearchParameter": "searchparameter.md",
             "StructureDefinition": "structuredefinition.md",
             "Logical": "logical.md",
             "ValueSet": "valueset.md",

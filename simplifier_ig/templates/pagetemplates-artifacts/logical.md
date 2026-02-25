@@ -11,4 +11,4 @@ buttons: yes
   
   {{page:FQL-get-resource-description}}
 
-  {{page:resource-view-tree}}
+  {{page:resource-view-logical}}

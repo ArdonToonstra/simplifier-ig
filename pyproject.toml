@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simplifier-ig"
-version = "0.3.0"
+version = "0.4.0"
 description = "CLI tool for generating Simplifier.net supported Implementation Guide structures from an IG publisher like input folder"
 readme = "README.md"
 license = "MIT"

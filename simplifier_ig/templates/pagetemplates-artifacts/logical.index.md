@@ -10,7 +10,7 @@ topic: logical-index
 	where 
 		type != 'Extension' and kind = 'logical' and kind !='complex-type'
 	select 
-		Profile: '{{pagelink:StructureDefinition-'+id+'}}', 
+		Profile: '{{pagelink:logical-'+id+'}}', 
 		Resource: type.toString(),
 		Description: description
 	order by Profile
