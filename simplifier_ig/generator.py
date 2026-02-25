@@ -197,8 +197,11 @@ class IGGenerator:
 
         images_dir = self._input_dir / "images"
         if images_dir.is_dir():
-            shutil.copytree(images_dir, self._guide_output_dir / "images")
-            self._log("[OK] Copied images directory (to guide root)")
+            dest = self._guide_output_dir / "Home" / "images"
+            shutil.copytree(images_dir, dest)
+            # Simplifier requires a toc.yaml even for non-navigable folders
+            self._write_toc_file(dest / "toc.yaml", [])
+            self._log("[OK] Copied images directory")
 
     # -- pages --
 
@@ -251,6 +254,8 @@ class IGGenerator:
                 shutil.copy2(item, out_path)
                 count += 1
             self._log(f"[OK] Copied {count} page templates (renamed .md -> .page.md)")
+            # Simplifier requires a toc.yaml even for non-navigable folders
+            self._write_toc_file(output_pt / "toc.yaml", [])
 
     # -- FHIR resource parsing (JSON only) --
 
