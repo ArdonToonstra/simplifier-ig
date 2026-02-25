@@ -73,8 +73,8 @@ class IGGenerator:
             result["resource_count"] = sum(len(v) for v in resources_by_type.values())
             result["example_count"] = len(examples)
 
-            # Step 8: Copy artifact index pages
-            index_pages = self._copy_artifact_index_pages()
+            # Step 8: Copy artifact index pages (only for types that have resources)
+            index_pages = self._copy_artifact_index_pages(resources_by_type, examples)
 
             # Step 9: Generate toc.yaml files
             result["toc_files_generated"] = self._generate_toc_files()
@@ -197,8 +197,8 @@ class IGGenerator:
 
         images_dir = self._input_dir / "images"
         if images_dir.is_dir():
-            shutil.copytree(images_dir, self._guide_output_dir / "Home" / "images")
-            self._log("[OK] Copied images directory")
+            shutil.copytree(images_dir, self._guide_output_dir / "images")
+            self._log("[OK] Copied images directory (to guide root)")
 
     # -- pages --
 
@@ -236,9 +236,21 @@ class IGGenerator:
         if pt_dir.is_dir():
             self._log("\n[COPY] Copying page templates...")
             output_pt = self._guide_output_dir / "Home" / "pagetemplates"
-            shutil.copytree(pt_dir, output_pt)
-            count = len(list(output_pt.glob("*.md")))
-            self._log(f"[OK] Copied {count} page templates")
+            output_pt.mkdir(parents=True, exist_ok=True)
+            count = 0
+            for item in pt_dir.rglob("*"):
+                if not item.is_file():
+                    continue
+                relative = item.relative_to(pt_dir)
+                if item.suffix.lower() == ".md" and not item.name.endswith(".page.md"):
+                    new_name = item.stem + ".page.md"
+                    out_path = output_pt / relative.parent / new_name
+                else:
+                    out_path = output_pt / relative
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, out_path)
+                count += 1
+            self._log(f"[OK] Copied {count} page templates (renamed .md -> .page.md)")
 
     # -- FHIR resource parsing (JSON only) --
 
@@ -386,7 +398,11 @@ class IGGenerator:
         self._log(f"[OK] Generated {resource_count + len(examples_list)} artifact pages")
         return dict(resources_by_type), examples_list
 
-    def _copy_artifact_index_pages(self) -> Dict[str, bool]:
+    def _copy_artifact_index_pages(
+        self,
+        resources_by_type: Dict[str, List],
+        examples_list: List,
+    ) -> Dict[str, bool]:
         self._log("\n[ARTIFACTS] Copying artifact index pages...")
         index_pages: Dict[str, bool] = {}
 
@@ -394,10 +410,20 @@ class IGGenerator:
             self._log("[WARNING] Templates directory not found, skipping index pages")
             return index_pages
 
+        # Build set of artifact type folder names that actually have resources
+        active_types = {rt.lower() for rt in resources_by_type if resources_by_type[rt]}
+        if examples_list:
+            active_types.add("examples")
+
         artifacts_dir = self._guide_output_dir / "Home" / "artifacts"
 
         for index_file in sorted(self._templates_dir.glob("*.index.md")):
             resource_type = index_file.stem.replace(".index", "")
+
+            if resource_type not in active_types:
+                self._log(f"   Skipped {index_file.name} (no {resource_type} artifacts found)")
+                continue
+
             target_dir = artifacts_dir / resource_type
             target_dir.mkdir(parents=True, exist_ok=True)
 
