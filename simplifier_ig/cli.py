@@ -8,12 +8,10 @@ from .config import load_config, save_config
 from .generator import GenerationError, IGGenerator
 from .ig_resource import IGResourceGenerator
 from .initializer import IGInitializer
+from .logger import make_printer
 from .validator import IGInputValidator
 
-
-def _printer(msg: str):
-    """Default log function that prints to stdout."""
-    print(msg)
+_printer = make_printer()
 
 
 # ---------------------------------------------------------------------------
