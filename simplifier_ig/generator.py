@@ -5,7 +5,7 @@ import re
 import shutil
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .models import new_generation_result
 from .utils import is_subpath
@@ -30,6 +30,7 @@ class IGGenerator:
         self._variables_config: Optional[Dict] = None
         self._templates: Dict[str, str] = {}
         self._templates_dir: Optional[Path] = None
+        self._artifacts_dir: Optional[Path] = None
 
     def generate(self, skip_validation: bool = False) -> Dict[str, Any]:
         result = new_generation_result()
@@ -173,6 +174,9 @@ class IGGenerator:
 
         home_dir = self._guide_output_dir / "Home"
         home_dir.mkdir(exist_ok=True)
+
+        artifacts_rel = str(self._guide_config.get("artifacts-path", "artifacts"))
+        self._artifacts_dir = home_dir / artifacts_rel
         self._log(f"[OK] Created Home directory: {home_dir}")
 
     # -- copy root --
@@ -299,8 +303,8 @@ class IGGenerator:
 
     def _generate_artifacts(self) -> Tuple[Dict[str, List], List]:
         self._log("\n[ARTIFACTS] Generating artifact pages...")
-        artifacts_dir = self._guide_output_dir / "Home" / "artifacts"
-        artifacts_dir.mkdir(exist_ok=True)
+        artifacts_dir = self._artifacts_dir
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
 
         # Create artifacts index page
         (artifacts_dir / "index.page.md").write_text(
@@ -316,6 +320,9 @@ class IGGenerator:
         resources_by_type: Dict[str, List] = defaultdict(list)
         seen_resource_ids: set = set()
 
+        # Resources whose type has no artifact template are treated as examples
+        example_overflow: List[Dict] = []
+
         for scan_dir in [resources_dir, fsh_resources_dir]:
             if scan_dir.is_dir():
                 for rf in sorted(scan_dir.glob("*.json")):
@@ -328,7 +335,13 @@ class IGGenerator:
                             classified_type = info["resourceType"]
                             if classified_type == "StructureDefinition" and info.get("kind") == "logical":
                                 classified_type = "Logical"
-                            resources_by_type[classified_type].append(info)
+
+                            if classified_type in self._templates:
+                                resources_by_type[classified_type].append(info)
+                            else:
+                                # No artifact template for this type — treat as example
+                                example_overflow.append(info)
+                                self._log(f"   Treating {classified_type}/{info['id']} as example (no artifact template)")
                         else:
                             self._log(f"   Skipped duplicate: {info['resourceType']}/{info['id']} from {scan_dir.name}")
 
@@ -363,42 +376,48 @@ class IGGenerator:
 
             self._log(f"   Created {len(resources)} {resource_type} artifact pages")
 
-        # Process examples
+        # Process examples (from input/examples/ and resources without templates)
         examples_dir = self._input_dir / "examples"
         examples_list: List[Dict] = []
 
+        # Collect examples from input/examples/ directory
         if examples_dir.is_dir():
+            for ef in sorted(examples_dir.glob("*.json")):
+                info = self._parse_fhir_resource(ef)
+                if info:
+                    examples_list.append(info)
+
+        # Merge in resources that had no artifact template
+        examples_list.extend(example_overflow)
+
+        if examples_list:
             examples_artifact_dir = artifacts_dir / "examples"
             examples_artifact_dir.mkdir(exist_ok=True)
 
             example_template = self._templates.get("Example", "")
 
-            for ef in sorted(examples_dir.glob("*.json")):
-                info = self._parse_fhir_resource(ef)
-                if info:
-                    examples_list.append(info)
-                    page_name = f"{info['id']}.page.md"
-                    page_path = examples_artifact_dir / page_name
+            for info in examples_list:
+                page_name = f"{info['id']}.page.md"
+                page_path = examples_artifact_dir / page_name
 
-                    variables = {
-                        "file-name": info["id"],
-                        "Resource.id": info["id"],
-                        "ResourceType/Resource.id": f"{info['resourceType']}/{info['id']}",
-                    }
+                variables = {
+                    "file-name": info["id"],
+                    "Resource.id": info["id"],
+                    "ResourceType/Resource.id": f"{info['resourceType']}/{info['id']}",
+                }
 
-                    if example_template:
-                        content = self._resolve_template_variables(example_template, variables)
-                    else:
-                        content = (
-                            f"# {info['id']}\n\n"
-                            f"*Example of {info['resourceType']}*\n\n"
-                            f"<!-- No template found for examples -->\n"
-                        )
+                if example_template:
+                    content = self._resolve_template_variables(example_template, variables)
+                else:
+                    content = (
+                        f"# {info['id']}\n\n"
+                        f"*Example of {info['resourceType']}*\n\n"
+                        f"<!-- No template found for examples -->\n"
+                    )
 
-                    page_path.write_text(content, encoding="utf-8")
+                page_path.write_text(content, encoding="utf-8")
 
-            if examples_list:
-                self._log(f"   Created {len(examples_list)} example artifact pages")
+            self._log(f"   Created {len(examples_list)} example artifact pages")
 
         self._log(f"[OK] Generated {resource_count + len(examples_list)} artifact pages")
         return dict(resources_by_type), examples_list
@@ -420,7 +439,7 @@ class IGGenerator:
         if examples_list:
             active_types.add("examples")
 
-        artifacts_dir = self._guide_output_dir / "Home" / "artifacts"
+        artifacts_dir = self._artifacts_dir
 
         for index_file in sorted(self._templates_dir.glob("*.index.md")):
             resource_type = index_file.stem.replace(".index", "")
@@ -458,13 +477,13 @@ class IGGenerator:
         self._log("[OK] Generated root toc.yaml")
 
         # Home/toc.yaml from menu config
-        self._generate_home_toc()
+        menu_configured_dirs = self._generate_home_toc()
 
         toc_count = 2  # root + home
 
         # Subdirectory toc.yaml (skip pagetemplates and artifacts subtree)
         home_dir = self._guide_output_dir / "Home"
-        artifacts_path = home_dir / "artifacts"
+        artifacts_path = self._artifacts_dir
 
         for current_dir in sorted(home_dir.rglob("*")):
             if not current_dir.is_dir():
@@ -477,6 +496,10 @@ class IGGenerator:
             if is_subpath(current_dir, artifacts_path):
                 continue
 
+            # Skip directories already handled by nested menu config
+            if current_dir in menu_configured_dirs:
+                continue
+
             entries = self._generate_toc_for_directory(current_dir)
             if entries:
                 self._write_toc_file(current_dir / "toc.yaml", entries)
@@ -487,9 +510,10 @@ class IGGenerator:
         self._log(f"[OK] Generated {toc_count} toc.yaml files")
         return toc_count
 
-    def _generate_home_toc(self):
+    def _generate_home_toc(self) -> Set[Path]:
         home_dir = self._guide_output_dir / "Home"
         home_toc: List[Dict[str, str]] = []
+        menu_configured_dirs: Set[Path] = set()
 
         menu = self._guide_config.get("menu") if self._guide_config else None
         if isinstance(menu, dict):
@@ -510,6 +534,15 @@ class IGGenerator:
                         if (home_dir / value).is_dir():
                             home_toc.append({"name": display_name, "filename": value})
 
+                elif isinstance(value, dict):
+                    folder_name = self._resolve_submenu_folder(value)
+                    if folder_name:
+                        home_toc.append({"name": display_name, "filename": folder_name})
+                        subdir = home_dir / folder_name
+                        if subdir.is_dir():
+                            self._generate_submenu_toc(subdir, value)
+                            menu_configured_dirs.add(subdir)
+
             if home_toc:
                 self._write_toc_file(home_dir / "toc.yaml", home_toc)
                 self._log(f"   Generated Home/toc.yaml ({len(home_toc)} entries) from menu config")
@@ -519,6 +552,45 @@ class IGGenerator:
             if entries:
                 self._write_toc_file(home_dir / "toc.yaml", entries)
                 self._log(f"   Generated Home/toc.yaml ({len(entries)} entries)")
+
+        return menu_configured_dirs
+
+    def _resolve_submenu_folder(self, submenu: Dict[str, str]) -> Optional[str]:
+        """Resolve the common folder from submenu values like 'background/file.md'."""
+        folders = []
+        for value in submenu.values():
+            value = str(value)
+            if "/" in value:
+                folders.append(value.split("/")[0])
+            # Values without '/' are folder references relative to the parent folder
+        if folders:
+            # All paths should share the same prefix folder
+            return folders[0]
+        return None
+
+    def _generate_submenu_toc(self, subdir: Path, submenu: Dict[str, str]):
+        """Generate toc.yaml for a subdirectory from nested menu config."""
+        entries: List[Dict[str, str]] = []
+        for display_name, value in submenu.items():
+            display_name = str(display_name)
+            value = str(value)
+
+            # Strip the folder prefix (e.g. 'technical_artifacts/file.md' -> 'file.md')
+            if "/" in value:
+                value = value.split("/", 1)[1]
+
+            if value.lower().endswith(".md"):
+                filename = value.replace(".md", ".page.md")
+            else:
+                # Folder reference (e.g. 'artifacts')
+                filename = value
+
+            entries.append({"name": display_name, "filename": filename})
+
+        if entries:
+            self._write_toc_file(subdir / "toc.yaml", entries)
+            rel = subdir.relative_to(self._guide_output_dir)
+            self._log(f"   Generated {rel}/toc.yaml ({len(entries)} entries) from menu config")
 
     def _generate_toc_for_directory(self, directory: Path) -> List[Dict[str, str]]:
         entries: List[Dict[str, str]] = []
@@ -543,7 +615,7 @@ class IGGenerator:
             if stem.lower() == "index":
                 display = "Index"
             else:
-                display = stem.replace("-", " ").title()
+                display = stem.replace("-", " ").replace("_", " ").title()
             entries.append({"name": display, "filename": f.name})
 
         for d in dirs:
@@ -551,7 +623,7 @@ class IGGenerator:
             if dn.lower() == "artifacts":
                 display = "Artifacts"
             else:
-                display = dn.replace("-", " ").title()
+                display = dn.replace("-", " ").replace("_", " ").title()
             entries.append({"name": display, "filename": dn})
 
         return entries
@@ -563,7 +635,7 @@ class IGGenerator:
         index_pages: Dict[str, bool],
     ):
         self._log("\n[TOC] Generating Artifacts table of contents...")
-        artifacts_dir = self._guide_output_dir / "Home" / "artifacts"
+        artifacts_dir = self._artifacts_dir
 
         # Main artifacts toc
         artifacts_toc: List[Dict[str, str]] = []
